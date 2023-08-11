@@ -1,6 +1,8 @@
-Hello World.
+<p align="center">
 
-<figure class="video_container">
-  <iframe src="assets/test.mp4" frameborder="0" allowfullscreen="true"> 
-</iframe>
-</figure>
+  <h1 align="center">EPSilon
+ </h1>
+  <div align="center">
+    <img src="assets/test.gif" alt="test" width="30%">
+  </div>
+</p> 
