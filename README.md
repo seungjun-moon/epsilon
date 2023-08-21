@@ -1,8 +1,7 @@
-<<<<<<< HEAD
   <h1 align="center">EPSiloN: Efficient Point Sampling for Reducing Inference Latency of NeRF-based Avatar Video Generation
  </h1>
   <div align="center">
-    <img src="assets/outputs.gif" alt="test" width="30%">
+    <img src="assets/outputs.gif" alt="test" width="100%">
   </div>
 </p>
 
