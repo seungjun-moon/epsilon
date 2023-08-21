@@ -23,3 +23,11 @@ The delicate sampling scheme of EPSiloN enables not only great computational cos
 Compared to existing methods, EPSiloN maintains the generation quality only with 7\% of sampled points and achieves around $15\times$ lower inference latency.
   </div>
 </p>
+
+## Method
+
+write down something.
+
+Input structure image.
+
+
