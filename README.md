@@ -1,9 +1,8 @@
-<p align="center">
-
+<<<<<<< HEAD
   <h1 align="center">EPSiloN: Efficient Point Sampling for Reducing Inference Latency of NeRF-based Avatar Video Generation
  </h1>
   <div align="center">
-    <img src="assets/test.gif" alt="test" width="30%">
+    <img src="assets/outputs.gif" alt="test" width="30%">
   </div>
 </p>
 
@@ -31,3 +30,9 @@ write down something.
 Input structure image.
 
 
+=======
+<figure class="video_container">
+  <iframe src="assets/test.mp4" frameborder="0" allowfullscreen="true"> 
+</iframe>
+</figure>
+>>>>>>> parent of ad6155b (test video)
