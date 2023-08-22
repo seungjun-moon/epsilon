@@ -24,7 +24,11 @@ Compared to existing methods, EPSiloN maintains the generation quality only with
 
 ## Method Overview
 
-Input structure image.
+<div align="center">
+  <img src="assets/structure.pdf" alt="visualize" width="100%">
+</div>
+
+
 
 ## Results
 
