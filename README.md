@@ -39,6 +39,8 @@ Along with the input image, we visualize the reconstructed image with RGB repres
   <img src="assets/visualize.gif" alt="visualize" width="100%">
 </div>
 
+
+
 <div align="center">
   <img src="assets/new.gif" alt="visualize" width="100%">
 </div>
