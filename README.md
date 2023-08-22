@@ -30,9 +30,6 @@ Input structure image.
 
 Along with the input image, we visualize the reconstructed image with RGB representation and mesh representation. Moreover, we show the depth image of the mesh, and obtained $T_n$ and $T_f$ together for the better understanding.
 
-<h1 align="center">EPSiloN: Efficient Point Sampling for Reducing Inference Latency of NeRF-based Avatar Video Generation
- </h1>
-  <div align="center">
-    <img src="assets/visualize.gif" alt="visualize" width="100%">
-  </div>
-</p>
+<div align="center">
+  <img src="assets/visualize.gif" alt="visualize" width="100%">
+</div>
