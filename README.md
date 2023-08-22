@@ -25,7 +25,7 @@ Compared to existing methods, EPSiloN maintains the generation quality only with
 ## Method Overview
 
 <div align="center">
-  <img src="assets/structure.pdf" alt="visualize" width="100%">
+  <img src="assets/structure.png" alt="visualize" width="100%">
 </div>
 
 
