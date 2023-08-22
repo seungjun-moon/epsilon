@@ -1,7 +1,7 @@
   <h1 align="center">EPSiloN: Efficient Point Sampling for Reducing Inference Latency of NeRF-based Avatar Video Generation
  </h1>
   <div align="center">
-    <img src="assets/outputs.gif" alt="teaser" width="100%">
+    <img src="assets/teaser.gif" alt="teaser" width="100%">
   </div>
 </p>
 
@@ -37,4 +37,8 @@ Along with the input image, we visualize the reconstructed image with RGB repres
 
 <div align="center">
   <img src="assets/visualize.gif" alt="visualize" width="100%">
+</div>
+
+<div align="center">
+  <img src="assets/outputs.gif" alt="visualize" width="100%">
 </div>
