@@ -18,7 +18,7 @@ In EPSiloN, we propose two methods to omit empty points at rendering; empty ray 
 In ERO, we wipe out rays that progress through the empty space.
 Then, EIO narrows down the sampling interval on the ray, which wipes out the region that cannot be occupied by either clothes or mesh.
 The delicate sampling scheme of EPSiloN enables not only great computational cost reduction occurred by deformation but also a single-stage inference without hierarchical sampling.
-Compared to existing methods, EPSiloN maintains the generation quality only with 7% of sampled points and achieves around 15 $\times$ lower inference latency.
+Compared to existing methods, EPSiloN maintains the generation quality only with 7% of sampled points and achieves around 15× lower inference latency.
   </div>
 </p>
 
