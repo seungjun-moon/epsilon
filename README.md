@@ -17,8 +17,8 @@ In light of this observation, we propose EPSiloN, a NeRF-based avatar video gene
 In EPSiloN, we propose two methods to omit empty points at rendering; empty ray omission (ERO) and empty interval omission (EIO).
 In ERO, we wipe out rays that progress through the empty space.
 Then, EIO narrows down the sampling interval on the ray, which wipes out the region that cannot be occupied by either clothes or mesh.
-The delicate sampling scheme of EPSiloN enables not only great computational cost reduction \sj{occurred by deformation} but also a single-stage inference without hierarchical sampling.
-Compared to existing methods, EPSiloN maintains the generation quality only with 7% of sampled points and achieves around 15times lower inference latency.
+The delicate sampling scheme of EPSiloN enables not only great computational cost reduction occurred by deformation but also a single-stage inference without hierarchical sampling.
+Compared to existing methods, EPSiloN maintains the generation quality only with 7% of sampled points and achieves around 15 $\times$ lower inference latency.
   </div>
 </p>
 
