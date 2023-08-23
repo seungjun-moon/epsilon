@@ -39,7 +39,8 @@ EPSiloN proposes an efficient point sampling strategies in the avatar generation
 Along with the input image, we visualize the reconstructed image with RGB representation and mesh representation. Moreover, we show the depth image of the mesh, and obtained $T_n$ and $T_f$ together for the better understanding. We visualize (ground truth, rendered image, mesh representation, $D(M')$, $T_n$, $T_f$), respectively, in the figure above. $T_n$ and $T_f$ indeed find the appropriate interval using $D(M')$.
 
 
-
 <div align="center">
   <img src="assets/new.gif" alt="visualize" width="100%">
 </div>
+
+In the figure above, we visualize the novel view generation and novel pose generation of four subjects in People Snapshot datasets. While achieving 15 times faster rendering speed compared to the baseline, our model robustly generates the novel contents of given subjects.
