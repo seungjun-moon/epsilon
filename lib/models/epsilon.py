@@ -221,16 +221,24 @@ class EPSilon(nn.Module):
 
     def generate_candidates(self, depth_map, weight_map, consistent):
 
-        print(depth_map.shape)
-
         mesh_mask = depth_map.reshape(batch_size, self.image_size**2,-1)
 
         if consistent:
-            k=21
+            k=11
         else:
             k=21
 
-        raise NotImplementedError
+        kernel = torch.ones(k,k).to(self.device)
+        kernel *= 1/k
+        mesh_mask_dilate = F.conv2d(mesh_mask, kernel.unsqueeze(0).unsqueeze(0).float(), padding=(k-1)//2)
+        mesh_mask_dilate = mesh_mask_dilate.reshape([batch_size, -1])
+
+        cand_mesh_mask = (mesh_mask_dilate > 0.9).nonzero().squeeze()[:,1].to(self.device)
+
+        if not consistent:
+            return cand_mesh_mask
+        else:
+            raise NotImplementedError
 
     def sample_interval(self, rays_far, n_patch=8, threshold=0.59, shift=True):
         rays_far_patch = rays_far.clone() # 1*512*512
@@ -329,8 +337,14 @@ class EPSilon(nn.Module):
                             torch.linspace(H//2 - dH, H//2 + dH - 1, 2*dH), 
                             torch.linspace(W//2 - dW, W//2 + dW - 1, 2*dW)
                         ), -1)
+                elif self.cfg.ero:
+                    coords = torch.stack(torch.meshgrid(torch.linspace(0, self.image_size-1, self.image_size), torch.linspace(0, self.image_size-1, self.image_size)), -1)
+                    print(coords)
+                    print(coords.shape)
                 else:
-                    coords = torch.stack(torch.meshgrid(torch.linspace(0, self.image_size-1, self.image_size), torch.linspace(0, self.image_size-1, self.image_size)), -1)  
+                    coords = torch.stack(torch.meshgrid(torch.linspace(0, self.image_size-1, self.image_size), torch.linspace(0, self.image_size-1, self.image_size)), -1)
+
+                 
                 n_rays = self.cfg.chunk # 4096
                 coords = torch.reshape(coords, [-1,2]).long().to(self.device) # 262144 * 2
                 # 

@@ -125,7 +125,7 @@ class Visualizer(Trainer):
                         batch['deformation_code'] = deformation_code.expand(batch['image'].shape[0], -1)
 
             # if batch_nb == 0:
-            opdict, candidates = self.model(batch, train=False)
+            opdict = self.model(batch, train=False)
 
             e=time.time()
             print('Frame Inference '.ljust(30)+': {:.3f}'.format(e-s))

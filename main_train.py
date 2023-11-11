@@ -17,8 +17,8 @@ def train(subject_name, exp_cfg, args=None):
     cfg.output_dir = os.path.join(args.exp_dir, data_type, subject_name)
     cfg.wandb_name = args.wandb_name
     
-    cfg.ero = ero
-    cfg.eio = eio
+    cfg.ero = args.ero
+    cfg.eio = args.eio
 
     if 'nerf' in exp_cfg:
         cfg.exp_name = f'{subject_name}_nerf'
