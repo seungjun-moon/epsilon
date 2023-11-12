@@ -23,12 +23,15 @@ def train(subject_name, exp_cfg, args=None):
     if 'nerf' in exp_cfg:
         cfg.exp_name = f'{subject_name}_nerf'
         cfg.output_dir = os.path.join(args.exp_dir, data_type, subject_name, args.dir_stage_0)
-        # cfg.ckpt_path = os.path.abspath('./exps/data/sj_klleon2/nerf/model.tar') # any pretrained nerf model to have a better initialization
         cfg.ckpt_path = args.ckpt_path
     else:
         cfg.exp_name = f'{subject_name}_hybrid'
         cfg.output_dir = os.path.join(args.exp_dir, data_type, subject_name, args.dir_stage_1)
-        cfg.ckpt_path = os.path.join(args.exp_dir, data_type, subject_name, args.dir_stage_0, 'model.tar')
+        if args.ckpt_path == '':
+            cfg.ckpt_path = os.path.join(args.exp_dir, data_type, subject_name, args.dir_stage_0, 'model.tar')
+        else:
+            cfg.ckpt_path = args.ckpt_path
+
     if args.clean:
         shutil.rmtree(os.path.join(cfg.output_dir, f'{cfg.group}/{cfg.exp_name}'), ignore_errors=True)
     os.makedirs(os.path.join(cfg.output_dir), exist_ok=True)
@@ -54,7 +57,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_cfg', type=str, default = 'configs/data/mpiis/DSC_7157.yml', help='data cfg file path')
     parser.add_argument('--train_nerf', action="store_true", help='')
     parser.add_argument('--clean', action="store_true", help='delete output dir if exists')
-    parser.add_argument('--ckpt_path', type=str, default='./exps/data/sj_klleon2/nerf/model.tar', help='')
+    parser.add_argument('--ckpt_path', type=str, default='', help='')
 
     parser.add_argument('--ero', action="store_true", help='apply ERO')
     parser.add_argument('--eio', action="store_true", help='apply EIO')

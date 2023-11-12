@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 from torch import nn
 import numpy as np
 import pickle
@@ -199,7 +200,7 @@ class EPSilon(nn.Module):
         )
     
     def fixed_rays(self):
-        # generat rays
+        # generate rays
         height, width = self.image_size, self.image_size
         if self.cfg.use_perspective:
             near = 43; far = 48.5
@@ -215,13 +216,13 @@ class EPSilon(nn.Module):
         center = torch.stack((X,Y,Z), dim=-1)[None,...]
         direction = torch.tensor([0,0,1.], device=self.device)[None,None,None,:].repeat(1,height, width,1)
         near = torch.ones_like(X)[None,:,:,None]*near
-        far = torch.ones_like(X)[None,:,:,None]*far 
+        far = torch.ones_like(X)[None,:,:,None]*far
         pixel_rays = torch.cat([center, direction, near, far], dim=-1) 
         return pixel_rays
 
-    def generate_candidates(self, depth_map, weight_map, consistent):
-
-        mesh_mask = depth_map.reshape(batch_size, self.image_size**2,-1)
+    def generate_candidates(self, depth_map, weight_map, consistent, return_type='coords'):
+        assert return_type in ['coords','indices', 'both']
+        batch_size = depth_map.shape[0]
 
         if consistent:
             k=11
@@ -230,15 +231,26 @@ class EPSilon(nn.Module):
 
         kernel = torch.ones(k,k).to(self.device)
         kernel *= 1/k
-        mesh_mask_dilate = F.conv2d(mesh_mask, kernel.unsqueeze(0).unsqueeze(0).float(), padding=(k-1)//2)
-        mesh_mask_dilate = mesh_mask_dilate.reshape([batch_size, -1])
-
-        cand_mesh_mask = (mesh_mask_dilate > 0.9).nonzero().squeeze()[:,1].to(self.device)
-
+        depth_map_dilate = F.conv2d(depth_map, kernel.repeat(batch_size,1,1).unsqueeze(0).float(), padding=(k-1)//2)
+        
         if not consistent:
-            return cand_mesh_mask
+            candidates = depth_map_dilate
         else:
             raise NotImplementedError
+
+        candidates = torch.where(candidates > 0.9, 1, 0).squeeze().to(self.device)
+
+        if return_type == 'coords':
+            cand_coords  = torch.nonzero(candidates)
+            return cand_coords
+        elif return_type == 'indices':
+            cand_indices = torch.nonzero(candidates.reshape(-1)).squeeze()
+            return cand_indices
+        elif return_type == 'both':
+            cand_coords  = torch.nonzero(candidates)
+            cand_indices = torch.nonzero(candidates.reshape(-1)).squeeze()
+
+            return cand_coords, cand_indices
 
     def sample_interval(self, rays_far, n_patch=8, threshold=0.59, shift=True):
         rays_far_patch = rays_far.clone() # 1*512*512
@@ -251,21 +263,23 @@ class EPSilon(nn.Module):
         for i in range(n_patch):
             for j in range(n_patch):
 
-                range_x = [x for x in range(i*patch_size,(i+1)*patch_size)]
-                range_y = [y for y in range(j*patch_size,(j+1)*patch_size)]
+                range_x = torch.tensor([x for x in range(i*patch_size,(i+1)*patch_size)])
+                range_y = torch.tensor([y for y in range(j*patch_size,(j+1)*patch_size)])
 
-                bg_to_max = torch.where(rays_far[:,range_x,range_y]>threshold, -1, rays_far[:,range_x,range_y])
-                bg_to_min = torch.where(rays_far[:,range_x,range_y]>threshold,  1, rays_far[:,range_x,range_y])
-
+                bg_to_max = torch.where(rays_far[:,i*patch_size:(i+1)*patch_size,j*patch_size:(j+1)*patch_size]>threshold, -1,
+                                        rays_far[:,i*patch_size:(i+1)*patch_size,j*patch_size:(j+1)*patch_size])
+                bg_to_min = torch.where(rays_far[:,i*patch_size:(i+1)*patch_size,j*patch_size:(j+1)*patch_size]>threshold,  1,
+                                        rays_far[:,i*patch_size:(i+1)*patch_size,j*patch_size:(j+1)*patch_size])
                 depth_max = torch.max(bg_to_max)
                 depth_min = torch.min(bg_to_min)
 
                 if depth_max == -1: #all empty
                     depth_max =  0.6
+                if depth_min == 1:
                     depth_min = -0.6
 
-                rays_far_patch[:,range_x,range_y]  = depth_max
-                rays_near_patch[:,range_x,range_y] = depth_min
+                rays_far_patch[:,i*patch_size:(i+1)*patch_size,j*patch_size:(j+1)*patch_size]  = depth_max
+                rays_near_patch[:,i*patch_size:(i+1)*patch_size,j*patch_size:(j+1)*patch_size] = depth_min
 
         if not shift:
             return rays_far_patch, rays_near_patch
@@ -276,29 +290,32 @@ class EPSilon(nn.Module):
         for i in range(n_patch-1):
             for j in range(n_patch-1):
 
-                range_x = [x+patch_size//2 for x in range(i*patch_size,(i+1)*patch_size)]
-                range_y = [y+patch_size//2 for y in range(j*patch_size,(j+1)*patch_size)]
+                range_x = torch.tensor([x+patch_size//2 for x in range(i*patch_size,(i+1)*patch_size)])
+                range_y = torch.tensor([y+patch_size//2 for y in range(j*patch_size,(j+1)*patch_size)])
 
-                bg_to_max = torch.where(rays_far[:,range_x,range_y]>threshold, -1, rays_far[:,range_x,range_y])
-                bg_to_min = torch.where(rays_far[:,range_x,range_y]>threshold,  1, rays_far[:,range_x,range_y])
+                bg_to_max = torch.where(rays_far[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2]>threshold, -1, 
+                                        rays_far[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2])
+                bg_to_min = torch.where(rays_far[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2]>threshold,  1,
+                                        rays_far[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2])
 
                 depth_max = torch.max(bg_to_max)
                 depth_min = torch.min(bg_to_min)
 
                 if depth_max == -1: #all empty
                     depth_max =  0.6
+                if depth_min == 1:
                     depth_min = -0.6
 
-                rays_far_patch_swin[:,range_x,range_y] = depth_max
-                rays_near_patch_swin[:,range_x,range_y]= depth_min
+                rays_far_patch_swin[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2]  = depth_max
+                rays_near_patch_swin[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2] = depth_min
 
         union_far = torch.where(rays_far_patch > rays_far_patch_swin, rays_far_patch, rays_far_patch_swin)
-        union_near = torch.where(rays_near_patch > rays_near_patch_swin, rays_near_patch, rays_near_patch_swin)
+        union_near = torch.where(rays_near_patch < rays_near_patch_swin, rays_near_patch, rays_near_patch_swin)
 
         return union_far, union_near
 
     @torch.no_grad()
-    def sample_rays(self, batch, train=False):
+    def sample_rays(self, batch, train=False, consistent=False):
         ''' sample points in view space
         '''
         batch_size = batch['cam'].shape[0] # 1
@@ -324,8 +341,8 @@ class EPSilon(nn.Module):
 
                 rays[:,:,:,7] = rays_far
 
-                batch['rays_far']  = rays[:,:,:,7]
-                batch['rays_near'] = rays[:,:,:,6]
+                # batch['rays_far_image']  = rays[:,:,:,7]
+                # batch['rays_near_image'] = rays[:,:,:,6]
 
             if train:
                 if self.cfg.train.precrop_iters > batch['global_step'] and not self.cfg.sample_patch_rays:
@@ -338,15 +355,13 @@ class EPSilon(nn.Module):
                             torch.linspace(W//2 - dW, W//2 + dW - 1, 2*dW)
                         ), -1)
                 elif self.cfg.ero:
-                    coords = torch.stack(torch.meshgrid(torch.linspace(0, self.image_size-1, self.image_size), torch.linspace(0, self.image_size-1, self.image_size)), -1)
-                    print(coords)
-                    print(coords.shape)
+                    coords = self.generate_candidates(depth_map=batch['vis_image'].detach(), weight_map=None, consistent=consistent, return_type='coords') # 58714 * 2
                 else:
-                    coords = torch.stack(torch.meshgrid(torch.linspace(0, self.image_size-1, self.image_size), torch.linspace(0, self.image_size-1, self.image_size)), -1)
-
+                    coords = torch.stack(torch.meshgrid(torch.linspace(0, self.image_size-1, self.image_size), torch.linspace(0, self.image_size-1, self.image_size)), -1) # 512 * 512 * 2
+                    coords = torch.reshape(coords, [-1,2]).long().to(self.device) # 262144 * 2
                  
                 n_rays = self.cfg.chunk # 4096
-                coords = torch.reshape(coords, [-1,2]).long().to(self.device) # 262144 * 2
+                
                 # 
                 select_inds = torch.randperm(coords.shape[0])[:n_rays]
                 coords = coords[select_inds] # 4096 * 2
@@ -375,14 +390,21 @@ class EPSilon(nn.Module):
 
                         batch[f'{key}_sampled'] = gts_sampled
             else:
-                rays = rays.reshape(batch_size,-1,rays.shape[-1])
+                if self.cfg.ero:
+                    coords, indices = self.generate_candidates(depth_map=batch['vis_image'].detach(), weight_map=None, consistent=consistent, return_type='both')
+
+                    rays = rays[:,coords[:,0], coords[:,1]]
+                rays = rays.reshape(batch_size,-1,rays.shape[-1]) # 1 * 262144 * 8 or 1 * 55540 * 8
                 for key in ['mesh_mask', 'mesh_image', 'shape_image']:
                     if key in batch.keys():
                         gts = batch[key].permute(0,2,3,1)
                         gts_sampled = gts.reshape(batch_size, -1, gts.shape[-1])
                         batch[f'{key}_sampled'] = gts_sampled
 
-        return rays
+        if train or not self.cfg.ero:
+            return rays
+        else:
+            return rays, coords, indices
     
     @torch.no_grad()
     def sample_points(self, rays, perturb=False, z_coarse=None, weights=None, combine=True):
@@ -487,7 +509,11 @@ class EPSilon(nn.Module):
         
         xyz = util.batch_transform(xyz_transform, xyz)
         xyz_valid = torch.lt(xyz_dist, self.cfg.dis_threshold).float().squeeze()
-        valid = xyz_valid.reshape(batch_size, self.cfg.chunk, -1, 1)
+        if self.cfg.ero:
+            chunk = n_sample // self.cfg.n_samples
+        else:
+            chunk = self.cfg.chunk
+        valid = xyz_valid.reshape(batch_size, chunk, -1, 1)
         if self.cfg.use_deformation:
             xyz, d_xyz = self.deformation(xyz, batch['deformation_code'])
             batch['d_xyz'] = d_xyz
@@ -702,13 +728,17 @@ class EPSilon(nn.Module):
             batch.update(mesh_out)
         opdict.update(mesh_out)
 
-        self.cfg.n_samples=24
-        self.cfg.n_importance = 16
+        self.cfg.n_samples=36
 
         if self.cfg.use_nerf:
             if self.cfg.use_mesh:
                 batch.update(mesh_out)
-            rays = self.sample_rays(batch, train=train) # B * 4096 * 8
+            
+            if not train and self.cfg.ero:
+                rays, coords, indices = self.sample_rays(batch, train=train) # B * 4096 * 8
+            else:
+                rays = self.sample_rays(batch, train=train) # B * 4096 * 8
+
             if train:
                 nerf_out_image = self.forward_nerf(batch, rays, render_cloth=render_cloth)
             else:
@@ -724,35 +754,67 @@ class EPSilon(nn.Module):
                     mesh_image_sampled = batch['mesh_image_sampled'].clone()
                     if render_shape:
                         shape_image_sampled = batch['shape_image_sampled'].clone()
-                for i in range(self.image_size**2//chunk):
-                    chunk_idx = list(range(chunk*i, chunk*(i+1)))
-                    if self.cfg.use_mesh:
-                        batch['mesh_image_sampled'] = mesh_image_sampled[:,chunk_idx]
-                        if render_shape:
-                            batch['shape_image_sampled'] = shape_image_sampled[:,chunk_idx]
-                    # rays : [1, 262144, 8], rays[:, chunk_idx] : [1,4096,8]
-                    nerf_out = self.forward_nerf(batch, rays[:, chunk_idx], train=False, render_cloth=render_cloth, with_shape=render_shape)
-                    rgbs_list.append(nerf_out['rgbs'])
-                    alphas_list.append(nerf_out['alphas'])
-                    if 'normal' in nerf_out.keys():
-                        normal_list.append(nerf_out['normal'])
+
+                if self.cfg.ero:
+
+                    rgbs   =  torch.ones(batch_size, self.image_size**2, 3).to(self.device)
+                    alphas = torch.zeros(batch_size, self.image_size**2, 1).to(self.device)
+                    depths = torch.zeros(batch_size, self.image_size**2, 1).to(self.device)
+
+                    num_rays = rays.shape[1]
+                    for i in range(num_rays//chunk + 1):
+                        chunk_idx = list(range(chunk*i, min(chunk*(i+1),num_rays)))
+                        query_idx = indices[chunk_idx]
+
+                        if self.cfg.use_mesh:
+                            batch['mesh_image_sampled'] = mesh_image_sampled[:,query_idx]
+                            if render_shape:
+                                batch['shape_image_sampled'] = shape_image_sampled[:,query_idx]
+
+                        nerf_out = self.forward_nerf(batch, rays[:, chunk_idx], train=False, render_cloth=render_cloth, with_shape=render_shape)
+                        rgbs_list.append(nerf_out['rgbs'])
+                        alphas_list.append(nerf_out['alphas'])
+                        if 'normal' in nerf_out.keys():
+                            normal_list.append(nerf_out['normal'])
+
+                    rgbs_valid   = torch.cat(rgbs_list,   dim=1)
+                    alphas_valid = torch.cat(alphas_list, dim=1)
+
+                    rgbs[:,indices]   = rgbs_valid
+                    alphas[:,indices] = alphas_valid
+
+                    pixels = torch.cat([rgbs, alphas], -1) #[bz, n_rays, 4]
+
+                else:
+                    for i in range(self.image_size**2//chunk):
+                        chunk_idx = list(range(chunk*i, chunk*(i+1)))
+                        if self.cfg.use_mesh:
+                            batch['mesh_image_sampled'] = mesh_image_sampled[:,chunk_idx]
+                            if render_shape:
+                                batch['shape_image_sampled'] = shape_image_sampled[:,chunk_idx]
+                        # rays : [1, 262144, 8], rays[:, chunk_idx] : [1,4096,8]
+                        nerf_out = self.forward_nerf(batch, rays[:, chunk_idx], train=False, render_cloth=render_cloth, with_shape=render_shape)
+                        rgbs_list.append(nerf_out['rgbs'])
+                        alphas_list.append(nerf_out['alphas'])
+                        if 'normal' in nerf_out.keys():
+                            normal_list.append(nerf_out['normal'])
+                        if self.cfg.use_fine and self.cfg.n_importance > 0 and not self.cfg.share_fine:
+                            rgbs_fine_list.append(nerf_out['rgbs_fine'])
+                            alphas_fine_list.append(nerf_out['alphas_fine'])
+                        if 'depths_fine' in nerf_out.keys():
+                            depth_list.append(nerf_out['depths_fine'])
+
+                        rgbs = torch.cat(rgbs_list, dim=1)
+                        alphas= torch.cat(alphas_list, dim=1)
+                        pixels = torch.cat([rgbs, alphas], -1) #[bz, n_rays, 4]
+
                     if self.cfg.use_fine and self.cfg.n_importance > 0 and not self.cfg.share_fine:
-                        rgbs_fine_list.append(nerf_out['rgbs_fine'])
-                        alphas_fine_list.append(nerf_out['alphas_fine'])
-                    if 'depths_fine' in nerf_out.keys():
-                        depth_list.append(nerf_out['depths_fine'])
+                        rgbs_fine = torch.cat(rgbs_fine_list, dim=1)
+                        alphas_fine = torch.cat(alphas_fine_list, dim=1)
+                        pixels = torch.cat([rgbs, alphas, rgbs_fine, alphas_fine], -1) #[bz, n_rays, 4]
 
-
-                rgbs = torch.cat(rgbs_list, dim=1)
-                alphas= torch.cat(alphas_list, dim=1)
-                pixels = torch.cat([rgbs, alphas], -1) #[bz, n_rays, 4]
-                if self.cfg.use_fine and self.cfg.n_importance > 0 and not self.cfg.share_fine:
-                    rgbs_fine = torch.cat(rgbs_fine_list, dim=1)
-                    alphas_fine = torch.cat(alphas_fine_list, dim=1)
-                    pixels = torch.cat([rgbs, alphas, rgbs_fine, alphas_fine], -1) #[bz, n_rays, 4]
-
-                    # rgbs : B * 262144 * 3
-                    # pixels : B * 262144 * 8
+                        # rgbs : B * 262144 * 3
+                        # pixels : B * 262144 * 8
 
                 pixel_image = pixels.reshape([batch_size, self.image_size, self.image_size, pixels.shape[-1]]) # B * 512 * 512 * 8
                 pixel_image = pixel_image.permute(0,3,1,2).contiguous() # B * 8 * 512 * 512
@@ -768,6 +830,12 @@ class EPSilon(nn.Module):
                     nerf_mask = nerf_out_image['nerf_fine_mask']
                     shape_image = self.forward_mesh(batch, renderShape=True)['shape_image']
                     nerf_out_image['nerf_fine_hybrid_image'] = nerf_mask * nerf_image + (1-nerf_mask) * shape_image
+                else:
+                    nerf_image = nerf_out_image['nerf_image']
+                    nerf_mask  = nerf_out_image['nerf_mask']
+                    # shape_image = self.forward_mesh(batch, renderShape=True)['shape_image']
+                    shape_image = batch['mesh_image']
+                    nerf_out_image['nerf_hybrid_image'] = nerf_mask * nerf_image + (1-nerf_mask) * shape_image
 
             opdict.update(nerf_out_image)
 

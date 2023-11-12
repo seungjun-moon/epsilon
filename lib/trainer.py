@@ -225,15 +225,6 @@ class Trainer(torch.nn.Module):
         batch['global_step'] = self.global_step
         opdict = self.model(batch, train=True) #now we got sigma here
 
-        # print(opdict['sigmas'].shape)
-        sigmas_sum = torch.sum(opdict['sigmas'], dim=2).squeeze(-1).clamp(max=1) # B*4096*1
-        if self.cfg.use_fine:
-            sigmas_fine_sum = torch.sum(opdict['sigmas_fine'], dim=2).squeeze(-1).clamp(max=1)
-
-        # print(sigmas_sum[:10].detach().cpu().numpy())
-        # print(batch['mask_sampled'].squeeze(-1)[:10].detach().cpu().numpy())
-        # print(batch['mask_sampled'].shape)
-
         #-- loss
         #### ----------------------- Losses
 
@@ -252,14 +243,10 @@ class Trainer(torch.nn.Module):
                     points_normal_fine, points_neighbs_normal_fine = self.model.canonical_normal(use_fine=True)
                     losses['nerf_reg_normal'] += self.cfg.loss.nerf_reg_normal_w * F.mse_loss(points_normal_fine, points_neighbs_normal_fine)
 
-            # losses['sigmas'] = lossfunc.huber(sigmas_sum, gt_mask.squeeze(-1)) * 0.5
-            # losses['rgb'] = lossfunc.huber(opdict['rgbs']*batch['mask_sampled'], batch['image_sampled']*batch['mask_sampled'])*self.cfg.loss.w_rgb
-            losses['rgb'] = lossfunc.huber(opdict['rgbs']*gt_mask, batch['image_sampled']*gt_mask)*self.cfg.loss.w_rgb #cloth_mask only for using mesh
+            losses['rgb'] = lossfunc.huber(opdict['rgbs']*batch['mask_sampled'], batch['image_sampled']*batch['mask_sampled'])*self.cfg.loss.w_rgb
             losses['alpha'] = lossfunc.huber(opdict['alphas'], gt_mask)*self.cfg.loss.w_alpha 
             if self.cfg.use_fine and self.cfg.n_importance > 0 and not self.cfg.share_fine:
-                losses['sigmas_fine'] = lossfunc.huber(sigmas_fine_sum, gt_mask.squeeze(-1)) * 0.5
-                # losses['rgb_fine'] = lossfunc.huber(opdict['rgbs_fine']*batch['mask_sampled'], batch['image_sampled']*batch['mask_sampled'])*self.cfg.loss.w_rgb
-                losses['rgb_fine'] = lossfunc.huber(opdict['rgbs_fine']*gt_mask, batch['image_sampled']*gt_mask)*self.cfg.loss.w_rgb
+                losses['rgb_fine'] = lossfunc.huber(opdict['rgbs_fine']*batch['mask_sampled'], batch['image_sampled']*batch['mask_sampled'])*self.cfg.loss.w_rgb
                 losses['alpha_fine'] = lossfunc.huber(opdict['alphas_fine'], gt_mask)*self.cfg.loss.w_alpha 
                 if self.cfg.sample_patch_rays:
                     patch_size = self.cfg.sample_patch_size
@@ -399,6 +386,12 @@ class Trainer(torch.nn.Module):
             savepath = os.path.join(self.cfg.output_dir, self.cfg.train.vis_dir, f'{self.global_step:06}.jpg')
         else:
             savepath = os.path.join(self.cfg.output_dir, self.cfg.train.val_vis_dir, f'{self.global_step:06}.jpg')
+
+        del visdict['mesh_mask']
+        del visdict['mask']
+        del visdict['cloth_mask']
+        del visdict['skin_mask']
+
         grid_image = util.visualize_grid(visdict, savepath, return_gird=True, size=self.image_size)
         images = wandb.Image(grid_image[:,:,[2,1,0]], caption="validation")
         wandb.log({data: images}, step=self.global_step)

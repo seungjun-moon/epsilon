@@ -117,7 +117,7 @@ cfg.train.eval_steps = 5000
 # ---------------------------------------------------------------------------- #
 cfg.dataset = CN()
 cfg.dataset.type = 'scarf'
-cfg.dataset.path = ''
+cfg.dataset.path = '/home/june1212/scarf/ids'
 cfg.dataset.white_bg = True
 cfg.dataset.subjects = None
 cfg.dataset.n_subjects = 1
