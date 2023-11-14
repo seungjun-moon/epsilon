@@ -96,13 +96,6 @@ class Visualizer(Trainer):
             self.train_dataset = build_datasets.build_train(self.cfg.dataset, mode='train')
             mode='train'
 
-        # self.train_dataset = build_datasets.build_train(self.cfg.dataset, mode='train')
-        # mode='train'
-
-        ##
-        # self.train_dataset = build_datasets.build_train(self.cfg.dataset, mode='train')
-        ## exceptional
-
         self.train_dataloader = DataLoader(self.train_dataset, batch_size=1, shuffle=False,
                             num_workers=0,
                             pin_memory=True,
@@ -135,8 +128,6 @@ class Visualizer(Trainer):
                 visdict['render_hybrid'] = opdict['nerf_fine_hybrid_image']
             else:
                 visdict['render'] = opdict['nerf_image']
-                visdict['non_empty_vis']  = opdict['non_empty_vis']
-                visdict['candidates_vis']= opdict['candidates_vis']
 
             savepath = os.path.join(savefolder, f'{self.cfg.exp_name}_f{frame_id}.jpg')
             grid_image = util.visualize_grid(visdict, savepath, return_gird=True, size=512, print_key=False)

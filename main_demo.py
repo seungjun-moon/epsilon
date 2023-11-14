@@ -59,8 +59,8 @@ if __name__ == '__main__':
     cfg.depth_std = 0.01
     cfg.wandb_name = 'test'
 
-    cfg.ero = True
-    cfg.eio = True
+    cfg.ero = False
+    cfg.eio = False
 
     visualizer = Visualizer(cfg)
     visualizer.run(vistype = args.vis_type, args=args)

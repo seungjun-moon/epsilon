@@ -1,4 +1,4 @@
-  <h1 align="center">EPSiloN: Efficient Point Sampling for Reducing Inference Latency of NeRF-based Avatar Video Generation
+  <h1 align="center">EPSilon: Efficient Point Sampling for Lightening of Hybrid-based 3D Avatar Generation
  </h1>
   <div align="center">
     <img src="assets/teaser.gif" alt="teaser" width="100%">
@@ -9,16 +9,9 @@
   <h1 align="center">Abstract
  </h1>
   <div align="center">
-   The rapid advancement of neural radiance fields (NeRF) combined with the existing statistical modeling, e.g., SMPL, has paved the way to generate animatable human avatars from a monocular video.
-To train NeRF in canonical space, we need to deform the dynamic movement of humans in the video.
-Unfortunately, backward deformation, which generates more accurate avatars than forward deformation, needs high computational costs on each sampled point.
-We observe that since most of the sampled points are located in empty space, they do not affect the generation quality but result in inference latency with deformation.
-In light of this observation, we propose EPSiloN, a NeRF-based avatar video generation scheme with novel efficient point sampling strategies for reducing inference latency.
-In EPSiloN, we propose two methods to omit empty points at rendering; empty ray omission (ERO) and empty interval omission (EIO).
-In ERO, we wipe out rays that progress through the empty space.
-Then, EIO narrows down the sampling interval on the ray, which wipes out the region that cannot be occupied by either clothes or mesh.
-The delicate sampling scheme of EPSiloN enables not only great computational cost reduction occurred by deformation but also a single-stage inference without hierarchical sampling.
-Compared to existing methods, EPSiloN maintains the generation quality only with 7% of sampled points and achieves around 15× lower inference latency.
+The rapid advancement of neural radiance fields (NeRF) has paved the way to generate animatable human avatars from a monocular video.
+However, the sole usage of NeRF suffers from a lack of details, which results in the emergence of hybrid representation that utilizes SMPL-based mesh together with NeRF representation. While hybrid-based models show quantitative and qualitative advantages of the state-of-the-art generating animatable and photo-realistic human avatars, they suffer from extremely slow inference due to their deformation scheme. To be aligned with the mesh, hybrid-based models use the deformation based on SMPL skinning weights, which needs high computational costs on each sampled point. We observe that since most of the sampled points are located in empty space, they do not affect the generation quality but result in inference latency with deformation. In light of this observation, we propose EPSilon, a hybrid-based 3D avatar generation scheme with novel efficient point sampling strategies that boosts both training and inference. In EPSilon, we propose two methods to omit empty points at rendering; empty ray omission (ERO) and empty interval omission (EIO).
+In ERO, we wipe out rays that progress through the empty space. Then, EIO narrows down the sampling interval on the ray, which wipes out the region that cannot be occupied by either clothes or mesh. The delicate sampling scheme of EPSilon enables not only great computational cost reduction occurred by deformation but also a single-stage NeRF structure without hierarchical sampling. Compared to existing methods, EPSilon maintains the generation quality only with 3.9% of sampled points and achieves around 19 times faster inference, while training converges 4 times faster.
   </div>
 </p>
 

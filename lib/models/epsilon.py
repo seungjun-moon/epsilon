@@ -732,7 +732,7 @@ class EPSilon(nn.Module):
             batch.update(mesh_out)
         opdict.update(mesh_out)
 
-        self.cfg.n_samples=28
+        self.cfg.n_samples=96
 
         if self.cfg.use_nerf:
             if self.cfg.use_mesh:
