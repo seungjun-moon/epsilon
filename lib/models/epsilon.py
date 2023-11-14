@@ -227,7 +227,7 @@ class EPSilon(nn.Module):
         if consistent:
             k=11
         else:
-            k=21
+            k=41
 
         kernel = torch.ones(k,k).to(self.device)
         kernel *= 1/k
@@ -336,10 +336,10 @@ class EPSilon(nn.Module):
                 if self.cfg.eio:
                     rays_far, rays_near = self.sample_interval(rays_far)
                     # given margin
-                    rays_far = torch.where(rays_far > 0.55, rays_far, rays_far+0.05)
+                    rays_far = torch.where(rays_far > 0.5, rays_far, rays_far+0.1)
                     rays_far = far.clone()*vis + rays_far*(1-vis)
 
-                    rays_near = torch.where(rays_near < -0.55, rays_near, rays_near-0.05)
+                    rays_near = torch.where(rays_near < -0.5, rays_near, rays_near-0.1)
 
                     rays[:,:,:,6] = rays_near
 
@@ -732,7 +732,7 @@ class EPSilon(nn.Module):
             batch.update(mesh_out)
         opdict.update(mesh_out)
 
-        self.cfg.n_samples=36
+        self.cfg.n_samples=28
 
         if self.cfg.use_nerf:
             if self.cfg.use_mesh:

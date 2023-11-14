@@ -37,7 +37,7 @@ if __name__ == '__main__':
     cfg = update_cfg(cfg, cfg_file)
     cfg = update_cfg(cfg, data_cfg)
     cfg.output_dir = model_dir
-    cfg.dataset.path = os.path.abspath(args.model_path)
+    cfg.dataset.path = os.path.join('/home/june1212/scarf/ids/', cfg.dataset.subjects[0])
     args.body_model_path = os.path.join(args.body_model_path, 'model.tar')
     args.clothing_model_path = os.path.join(args.clothing_model_path, 'model.tar')
     
@@ -61,6 +61,6 @@ if __name__ == '__main__':
 
     cfg.ero = True
     cfg.eio = True
-    
+
     visualizer = Visualizer(cfg)
     visualizer.run(vistype = args.vis_type, args=args)

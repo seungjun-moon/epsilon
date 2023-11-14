@@ -325,23 +325,16 @@ class Visualizer(Trainer):
             print('no mesh!')
             self.model.cfg.use_mesh=False
 
-        # self.model.cfg.use_highres_smplx = False
-
         for i in tqdm(range(full_pose.shape[0])):
             s=time.time()
             batch = {'full_pose': full_pose[i:i+1], 
                      'exp': exp[i:i+1], 
                      'cam': cam[i:i+1]}
-            if i == 0:
-                opdict, candidates = self.model(batch, train=False, inference_video=True)
-            else:
-                # opdict, candidates = self.model(batch, train=False, inference_video=True, candidates=candidates, nerf_depth=opdict['nerf_depth'])
-                opdict, candidates = self.model(batch, train=False, inference_video=True, candidates=candidates, nerf_depth=None)
+            opdict = self.model(batch, train=False)
             # visdict = {
             #     'render': opdict['nerf_fine_mask_image'], #sj
             #     'render_hybrid': opdict['nerf_fine_hybrid_image'],
             # }
-            print(self.model.cfg.use_fine)
             if self.model.cfg.use_fine:
                 visdict = {
                     'render': opdict['nerf_fine_image'],
@@ -390,8 +383,6 @@ class Visualizer(Trainer):
                         model_dict['model'][param_name].copy_(checkpoint['model'][param_name])
         else:
             savefolder = os.path.join(self.cfg.output_dir, 'visualization', vistype)
-
-        print('Use high-resolution : ', self.model.cfg.use_highres_smplx)
             
         os.makedirs(savefolder, exist_ok=True)
         if vistype == 'capture':
