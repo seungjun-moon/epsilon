@@ -16,13 +16,17 @@ if __name__ == '__main__':
     parser.add_argument('--body_model_path', type=str, default = '', help='if specified, then will use this model for body part')
     parser.add_argument('--clothing_model_path', type=str, default = '', help='if specified, then will use this model for clothing part')
 
+    parser.add_argument('--ero', action="store_true", help='apply ERO')
+    parser.add_argument('--eio', action="store_true", help='apply EIO')
+
     parser.add_argument('--image_size', type=int, default = 512, help='cfg file path')
     parser.add_argument('--video_type', type=str, default ='mp4', help='video type, gif or mp4')
     parser.add_argument('--fps', type=int, default = 10, help='fps for video, suggest 10 for novel view, and 30 for animation')
     parser.add_argument('--saveImages', action="store_true", help='save each image')
 
     parser.add_argument('--frame_id', type=int, default = 0, help='frame id for novel view and mesh extraction')
-    parser.add_argument('--animation_file', type=str, default = 'data/pixie_radioactive.pkl', help='path for pose data')                        
+    parser.add_argument('--animation_file', type=str, default = 'data/pixie_radioactive.pkl', help='path for pose data')
+
     args = parser.parse_args()
 
     #-- load config
@@ -59,8 +63,8 @@ if __name__ == '__main__':
     cfg.depth_std = 0.01
     cfg.wandb_name = 'test'
 
-    cfg.ero = False
-    cfg.eio = False
+    cfg.ero = args.ero
+    cfg.eio = args.eio
 
     visualizer = Visualizer(cfg)
     visualizer.run(vistype = args.vis_type, args=args)

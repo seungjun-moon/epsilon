@@ -262,10 +262,6 @@ class EPSilon(nn.Module):
 
         for i in range(n_patch):
             for j in range(n_patch):
-
-                range_x = torch.tensor([x for x in range(i*patch_size,(i+1)*patch_size)])
-                range_y = torch.tensor([y for y in range(j*patch_size,(j+1)*patch_size)])
-
                 bg_to_max = torch.where(rays_far[:,i*patch_size:(i+1)*patch_size,j*patch_size:(j+1)*patch_size]>threshold, -1,
                                         rays_far[:,i*patch_size:(i+1)*patch_size,j*patch_size:(j+1)*patch_size])
                 bg_to_min = torch.where(rays_far[:,i*patch_size:(i+1)*patch_size,j*patch_size:(j+1)*patch_size]>threshold,  1,
@@ -284,15 +280,12 @@ class EPSilon(nn.Module):
         if not shift:
             return rays_far_patch, rays_near_patch
 
-        rays_far_patch_swin  =  rays_far_patch.clone() # 1*512*512
-        rays_near_patch_swin = rays_near_patch.clone()
+        rays_far_patch_swin  = torch.full(rays_far_patch.shape,  0.6).to(self.device)
+        rays_near_patch_swin = torch.full(rays_far_patch.shape, -0.6).to(self.device)
 
-        for i in range(n_patch-1):
-            for j in range(n_patch-1):
 
-                range_x = torch.tensor([x+patch_size//2 for x in range(i*patch_size,(i+1)*patch_size)])
-                range_y = torch.tensor([y+patch_size//2 for y in range(j*patch_size,(j+1)*patch_size)])
-
+        for i in range(0,n_patch):
+            for j in range(0,n_patch):
                 bg_to_max = torch.where(rays_far[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2]>threshold, -1, 
                                         rays_far[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2])
                 bg_to_min = torch.where(rays_far[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2]>threshold,  1,
@@ -309,8 +302,13 @@ class EPSilon(nn.Module):
                 rays_far_patch_swin[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2]  = depth_max
                 rays_near_patch_swin[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2] = depth_min
 
+        
+
         union_far = torch.where(rays_far_patch > rays_far_patch_swin, rays_far_patch, rays_far_patch_swin)
         union_near = torch.where(rays_near_patch < rays_near_patch_swin, rays_near_patch, rays_near_patch_swin)
+
+        self.vis_far  = union_far
+        self.vis_near  = union_near
 
         return union_far, union_near
 
@@ -344,9 +342,6 @@ class EPSilon(nn.Module):
                     rays[:,:,:,6] = rays_near
 
                 rays[:,:,:,7] = rays_far
-
-                # batch['rays_far_image']  = rays[:,:,:,7]
-                # batch['rays_near_image'] = rays[:,:,:,6]
 
             if train:
                 if self.cfg.train.precrop_iters > batch['global_step'] and not self.cfg.sample_patch_rays:
@@ -842,6 +837,15 @@ class EPSilon(nn.Module):
                     nerf_out_image['nerf_hybrid_image'] = nerf_mask * nerf_image + (1-nerf_mask) * shape_image
 
             opdict.update(nerf_out_image)
+
+
+        # for visualize
+
+            opdict['rays_near_vis'] = torch.clip(-self.vis_near+0.5, min=-1, max=1)
+            opdict['rays_near_vis'] = torch.stack((opdict['rays_near_vis'],opdict['rays_near_vis'],opdict['rays_near_vis']),dim=1)
+
+            opdict['rays_far_vis'] = torch.clip(-self.vis_far+0.5, min=-1, max=1)
+            opdict['rays_far_vis'] = torch.stack((opdict['rays_far_vis'],opdict['rays_far_vis'],opdict['rays_far_vis']),dim=1)
 
         return opdict
     

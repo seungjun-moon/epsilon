@@ -128,6 +128,8 @@ class Visualizer(Trainer):
                 visdict['render_hybrid'] = opdict['nerf_fine_hybrid_image']
             else:
                 visdict['render'] = opdict['nerf_image']
+                visdict['T_n'] = opdict['rays_near_vis']
+                visdict['T_f'] = opdict['rays_far_vis']
 
             savepath = os.path.join(savefolder, f'{self.cfg.exp_name}_f{frame_id}.jpg')
             grid_image = util.visualize_grid(visdict, savepath, return_gird=True, size=512, print_key=False)
