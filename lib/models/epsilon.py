@@ -335,9 +335,13 @@ class EPSilon(nn.Module):
 
                 if self.cfg.eio:
                     rays_far, rays_near = self.sample_interval(rays_far)
-                    rays_far = far.clone()*vis + (rays_far+0.1)*(1-vis)
+                    # given margin
+                    rays_far = torch.where(rays_far > 0.55, rays_far, rays_far+0.05)
+                    rays_far = far.clone()*vis + rays_far*(1-vis)
 
-                    rays[:,:,:,6] = rays_near-0.15
+                    rays_near = torch.where(rays_near < -0.55, rays_near, rays_near-0.05)
+
+                    rays[:,:,:,6] = rays_near
 
                 rays[:,:,:,7] = rays_far
 
