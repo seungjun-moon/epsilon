@@ -21,7 +21,7 @@ However, the sole usage of NeRF suffers from a lack of details, which results in
   <img src="assets/structure.png" alt="visualize" width="100%">
 </div>
 
-EPSiloN proposes an efficient point sampling strategies in the avatar generation based on the monocular video, which results in comparable results to the state-of-the-art models while reducing the inference latency significantly.
+EPSilon proposes an efficient point sampling strategies in the avatar generation based on the monocular video, which results in comparable results to the state-of-the-art models while reducing the inference latency significantly.
 
 ## Results
 
