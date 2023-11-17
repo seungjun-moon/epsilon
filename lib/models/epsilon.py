@@ -262,10 +262,17 @@ class EPSilon(nn.Module):
 
         for i in range(n_patch):
             for j in range(n_patch):
-                bg_to_max = torch.where(rays_far[:,i*patch_size:(i+1)*patch_size,j*patch_size:(j+1)*patch_size]>threshold, -1,
-                                        rays_far[:,i*patch_size:(i+1)*patch_size,j*patch_size:(j+1)*patch_size])
-                bg_to_min = torch.where(rays_far[:,i*patch_size:(i+1)*patch_size,j*patch_size:(j+1)*patch_size]>threshold,  1,
-                                        rays_far[:,i*patch_size:(i+1)*patch_size,j*patch_size:(j+1)*patch_size])
+
+                index_w_1 =     i*patch_size
+                index_w_2 = (i+1)*patch_size
+                index_h_1 =     j*patch_size
+                index_h_2 = (j+1)*patch_size
+
+
+                bg_to_max = torch.where(rays_far[:,index_w_1:index_w_2,index_h_1:index_h_2]>threshold, -1,
+                                        rays_far[:,index_w_1:index_w_2,index_h_1:index_h_2])
+                bg_to_min = torch.where(rays_far[:,index_w_1:index_w_2,index_h_1:index_h_2]>threshold,  1,
+                                        rays_far[:,index_w_1:index_w_2,index_h_1:index_h_2])
                 depth_max = torch.max(bg_to_max)
                 depth_min = torch.min(bg_to_min)
 
@@ -274,8 +281,8 @@ class EPSilon(nn.Module):
                 if depth_min == 1:
                     depth_min = -0.6
 
-                rays_far_patch[:,i*patch_size:(i+1)*patch_size,j*patch_size:(j+1)*patch_size]  = depth_max
-                rays_near_patch[:,i*patch_size:(i+1)*patch_size,j*patch_size:(j+1)*patch_size] = depth_min
+                rays_far_patch[:,index_w_1:index_w_2,index_h_1:index_h_2]  = depth_max
+                rays_near_patch[:,index_w_1:index_w_2,index_h_1:index_h_2] = depth_min
 
         if not shift:
             return rays_far_patch, rays_near_patch
@@ -284,12 +291,18 @@ class EPSilon(nn.Module):
         rays_near_patch_swin = torch.full(rays_far_patch.shape, -0.6).to(self.device)
 
 
-        for i in range(0,n_patch):
-            for j in range(0,n_patch):
-                bg_to_max = torch.where(rays_far[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2]>threshold, -1, 
-                                        rays_far[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2])
-                bg_to_min = torch.where(rays_far[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2]>threshold,  1,
-                                        rays_far[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2])
+        for i in range(-1,n_patch):
+            for j in range(-1,n_patch):
+
+                index_w_1 = max(    i*patch_size+patch_size//2, 0)
+                index_w_2 = min((i+1)*patch_size+patch_size//2, size)
+                index_h_1 = max(    j*patch_size+patch_size//2, 0)
+                index_h_2 = min((j+1)*patch_size+patch_size//2, size)
+
+                bg_to_max = torch.where(rays_far[:,index_w_1:index_w_2,index_h_1:index_h_2]>threshold, -1,
+                                        rays_far[:,index_w_1:index_w_2,index_h_1:index_h_2])
+                bg_to_min = torch.where(rays_far[:,index_w_1:index_w_2,index_h_1:index_h_2]>threshold,  1,
+                                        rays_far[:,index_w_1:index_w_2,index_h_1:index_h_2])
 
                 depth_max = torch.max(bg_to_max)
                 depth_min = torch.min(bg_to_min)
@@ -299,16 +312,12 @@ class EPSilon(nn.Module):
                 if depth_min == 1:
                     depth_min = -0.6
 
-                rays_far_patch_swin[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2]  = depth_max
-                rays_near_patch_swin[:,i*patch_size+patch_size//2:(i+1)*patch_size+patch_size//2,j*patch_size+patch_size//2:(j+1)*patch_size+patch_size//2] = depth_min
+                rays_far_patch_swin[:,index_w_1:index_w_2,index_h_1:index_h_2]  = depth_max
+                rays_near_patch_swin[:,index_w_1:index_w_2,index_h_1:index_h_2] = depth_min
 
-        
-
+    
         union_far = torch.where(rays_far_patch > rays_far_patch_swin, rays_far_patch, rays_far_patch_swin)
         union_near = torch.where(rays_near_patch < rays_near_patch_swin, rays_near_patch, rays_near_patch_swin)
-
-        self.vis_far  = union_far
-        self.vis_near  = union_near
 
         return union_far, union_near
 
@@ -342,6 +351,9 @@ class EPSilon(nn.Module):
                     rays[:,:,:,6] = rays_near
 
                 rays[:,:,:,7] = rays_far
+
+                self.vis_far  = rays[:,:,:,7]
+                self.vis_near  = rays[:,:,:,6]
 
             if train:
                 if self.cfg.train.precrop_iters > batch['global_step'] and not self.cfg.sample_patch_rays:
