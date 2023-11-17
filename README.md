@@ -36,4 +36,4 @@ Along with the input image, we visualize the reconstructed image with RGB repres
   <img src="assets/new.gif" alt="visualize" width="100%">
 </div>
 
-In the figure above, we visualize the novel view generation and novel pose generation of four subjects in People Snapshot datasets. While achieving 15 times faster rendering speed compared to the baseline, our model robustly generates the novel contents of given subjects.
+In the figure above, we visualize the novel view generation and novel pose generation of four subjects in People Snapshot datasets. While achieving 20 times faster rendering speed compared to the baseline, our model robustly generates the novel contents of given subjects.
