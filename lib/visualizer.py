@@ -323,7 +323,12 @@ class Visualizer(Trainer):
             batch = {'full_pose': full_pose[i:i+1], 
                      'exp': exp[i:i+1], 
                      'cam': cam[i:i+1]}
-            opdict = self.model(batch, train=False)
+            if i == 0:
+                opdict = self.model(batch, train=False, consistent=False)
+            else:
+                batch['weight_map'] = opdict['nerf_mask']
+                opdict = self.model(batch, train=False, consistent=True)
+
             # visdict = {
             #     'render': opdict['nerf_fine_mask_image'], #sj
             #     'render_hybrid': opdict['nerf_fine_hybrid_image'],

@@ -225,9 +225,9 @@ class EPSilon(nn.Module):
         batch_size = depth_map.shape[0]
 
         if consistent:
-            k=0
+            k=21
         else:
-            k=0
+            k=41
 
         kernel = torch.ones(k,k).to(self.device)
         kernel *= 1/k
@@ -236,11 +236,12 @@ class EPSilon(nn.Module):
         if not consistent:
             candidates = depth_map_dilate
         else:
-            raise NotImplementedError
+            weight_map_dilate = F.conv2d(weight_map, kernel.repeat(batch_size,1,1).unsqueeze(0).float(), padding=(k-1)//2)
+            candidates = depth_map_dilate + weight_map_dilate
 
         candidates = torch.where(candidates > 0.9, 1, 0).squeeze().to(self.device)
 
-        # print(torch.mean(candidates))
+        print(torch.sum(candidates)/(512*512))
 
         if return_type == 'coords':
             cand_coords  = torch.nonzero(candidates)
@@ -404,7 +405,11 @@ class EPSilon(nn.Module):
                         batch[f'{key}_sampled'] = gts_sampled
             else:
                 if self.cfg.ero:
-                    coords, indices = self.generate_candidates(depth_map=batch['vis_image'].detach(), weight_map=None, consistent=consistent, return_type='both')
+                    try:
+                        coords, indices = self.generate_candidates(depth_map=batch['vis_image'].detach(), weight_map=batch['weight_map'], consistent=consistent, return_type='both')
+                    except:
+                        print('No previous weight map given.')
+                        coords, indices = self.generate_candidates(depth_map=batch['vis_image'].detach(), weight_map=None, consistent=consistent, return_type='both')
 
                     rays = rays[:,coords[:,0], coords[:,1]]
                 rays = rays.reshape(batch_size,-1,rays.shape[-1]) # 1 * 262144 * 8 or 1 * 55540 * 8
@@ -725,7 +730,7 @@ class EPSilon(nn.Module):
 
         return output
                 
-    def forward(self, batch, train=False, render_cloth=False, render_shape=False, render_background=False):
+    def forward(self, batch, train=False, render_cloth=False, render_shape=False, render_background=False, consistent=False):
         batch_size = batch['cam'].shape[0]
         opdict = {}
         if train or render_background:
@@ -741,14 +746,14 @@ class EPSilon(nn.Module):
             batch.update(mesh_out)
         opdict.update(mesh_out)
 
-        self.cfg.n_samples=96
+        self.cfg.n_samples=28
 
         if self.cfg.use_nerf:
             if self.cfg.use_mesh:
                 batch.update(mesh_out)
             
             if not train and self.cfg.ero:
-                rays, coords, indices = self.sample_rays(batch, train=train) # B * 4096 * 8
+                rays, coords, indices = self.sample_rays(batch, train=train, consistent=consistent) # B * 4096 * 8
             else:
                 rays = self.sample_rays(batch, train=train) # B * 4096 * 8
 
