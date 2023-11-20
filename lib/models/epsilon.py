@@ -225,9 +225,9 @@ class EPSilon(nn.Module):
         batch_size = depth_map.shape[0]
 
         if consistent:
-            k=11
+            k=0
         else:
-            k=41
+            k=0
 
         kernel = torch.ones(k,k).to(self.device)
         kernel *= 1/k
@@ -239,6 +239,8 @@ class EPSilon(nn.Module):
             raise NotImplementedError
 
         candidates = torch.where(candidates > 0.9, 1, 0).squeeze().to(self.device)
+
+        # print(torch.mean(candidates))
 
         if return_type == 'coords':
             cand_coords  = torch.nonzero(candidates)
