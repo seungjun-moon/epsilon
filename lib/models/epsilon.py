@@ -241,8 +241,6 @@ class EPSilon(nn.Module):
 
         candidates = torch.where(candidates > 0.9, 1, 0).squeeze().to(self.device)
 
-        print(torch.sum(candidates)/(512*512))
-
         if return_type == 'coords':
             cand_coords  = torch.nonzero(candidates)
             return cand_coords
