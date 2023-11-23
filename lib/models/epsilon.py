@@ -572,6 +572,7 @@ class EPSilon(nn.Module):
             return normals   
         ## query nerf mlp
         rgb, sigma = self.query_canonical_space(xyz, viewdir, use_fine=use_fine)
+
         rgb = rgb.reshape(rays.shape[0], rays.shape[1], -1, 3)
         sigma = sigma.reshape(rays.shape[0], rays.shape[1], -1, 1) #ray : [1, 4096, 8] sigma : [1, 4096, 64, 1]
 
@@ -744,7 +745,10 @@ class EPSilon(nn.Module):
             batch.update(mesh_out)
         opdict.update(mesh_out)
 
-        self.cfg.n_samples=28
+        if self.cfg.eio:
+            self.cfg.n_samples=28
+        else:
+            self.cfg.n_samples=96
 
         if self.cfg.use_nerf:
             if self.cfg.use_mesh:
