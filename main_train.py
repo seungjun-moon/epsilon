@@ -61,6 +61,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--ero', action="store_true", help='apply ERO')
     parser.add_argument('--eio', action="store_true", help='apply EIO')
+    
     args = parser.parse_args()
     # 
     #-- data setting
